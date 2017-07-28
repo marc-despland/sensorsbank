@@ -1,6 +1,6 @@
-# ImageBank server
+# SensorsBank server
 
-It's a simple NodeJs server to store images on a Mongo Database
+It's a simple NodeJs server to store sensors data on a Mongo Database
 
 ## Configuration
 
@@ -21,4 +21,4 @@ If you use a User/Password to connect on MongoDB, make sure the user has the rol
 
 The API description is provide with a swagger file available in /api/swagger/swagger.yaml
 
-When you run the server, it start a swagger-ui available at http://<server ip>:8080/api/docs
+When you run the server, it start a swagger-ui available at http://<server ip>:<server port>/api/docs
