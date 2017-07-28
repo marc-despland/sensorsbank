@@ -1,0 +1,239 @@
+swagger: "2.0"
+info:
+  version: "0.0.1"
+  title: Sensors Bank API
+# basePath prefixes all resource paths 
+basePath: /api
+tags:
+  - name: Admin
+    description: Administration fonctions
+  - name: Sensor
+    description: Sensor management functions
+schemes:
+  # tip: remove http to make production-grade
+  - http
+  - https
+# format of bodies a client can send (Content-Type)
+consumes:
+  - application/json
+# format of the responses to the client (Accepts)
+produces:
+  - application/json
+paths:
+  /users:
+    x-swagger-router-controller: users
+    post:
+      tags:
+        - Admin
+      description: Create a new user
+      operationId: createUser
+      parameters:
+        - name: AdminKey
+          in: header
+          description: The admin key
+          required: true
+          type: string
+        - name: user
+          in: body
+          description: The user to create
+          required: true
+          schema:
+            $ref: "#/definitions/UserCreate"
+      responses:
+        "201":
+          description: Created
+          schema:
+            # a pointer to a definition
+            $ref: "#/definitions/User"
+        # responses may fall through to errors
+        default:
+          description: Error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+    get:
+      tags:
+        - Admin
+      description: Return the list of users
+      operationId: listUsers
+      parameters:
+        - name: AdminKey
+          in: header
+          description: The admin key
+          required: true
+          type: string
+      responses:
+        "200":
+          description: Success
+          schema:
+            # a pointer to a definition
+            $ref: "#/definitions/Users"
+        # responses may fall through to errors
+        default:
+          description: Error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+  /users/{userid}:
+    x-swagger-router-controller: users
+    get:
+      tags:
+        - Admin
+      description: Retreive the user information
+      operationId: getUser
+      parameters:
+        - name: AdminKey
+          in: header
+          description: The admin key
+          required: true
+          type: string
+        - name: userid
+          in: path
+          description: The Id of the user
+          required: true
+          type: string
+      responses:
+        "200":
+          description: Success
+          schema:
+            # a pointer to a definition
+            $ref: "#/definitions/User"
+        # responses may fall through to errors
+        default:
+          description: Error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+    put:
+      tags:
+        - Admin
+      description: Update the given user
+      operationId: updateUser
+      parameters:
+        - name: AdminKey
+          in: header
+          description: The admin key
+          required: true
+          type: string
+        - name: userid
+          in: path
+          description: The Id of the user
+          required: true
+          type: string
+        - name: user
+          in: body
+          description: The new user data
+          required: true
+          schema:
+            $ref: "#/definitions/UserUpdate"
+      responses:
+        "200":
+          description: Success
+          schema:
+            # a pointer to a definition
+            $ref: "#/definitions/User"
+        # responses may fall through to errors
+        default:
+          description: Error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+    delete:
+      tags:
+        - Admin
+      description: Delete the given user
+      operationId: deleteUser
+      parameters:
+        - name: AdminKey
+          in: header
+          description: The admin key
+          required: true
+          type: string
+        - name: userid
+          in: path
+          description: The Id of the user
+          required: true
+          type: string
+      responses:
+        "200":
+          description: Success
+        # responses may fall through to errors
+        default:
+          description: Error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+  /sensors:
+    x-swagger-router-controller: sensors
+    post:
+      tags:
+        - Sensor
+      description: Post new sensor data
+      operationId: addsensorsdata
+      parameters:
+        - name: ApiKey
+          in: header
+          description: The user apikey
+          required: true
+          type: string
+        - name: sesnors
+          in: body
+          description: The sesnors data
+          required: true
+          schema:
+            $ref: "#/definitions/SensorsData"
+      responses:
+        "200":
+          description: OK
+        # responses may fall through to errors
+        default:
+          description: Error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+  /swagger:
+    x-swagger-pipe: swagger_raw
+# complex objects have schema definitions
+definitions:
+  Sensors:
+    properties:
+      date:
+        type: string
+        format: date-time
+      sensors:
+        type: array
+        items:
+          $ref: "#/definitions/Sensor"
+  Sensor:
+    properties:
+      name:
+        type: string
+      value:
+        type: [string, integer, number]
+  Users:
+    type: array
+    items:
+      $ref: "#/definitions/User"
+  UserBase:
+    properties:
+      name:
+        type: string
+  User:
+    allOf:
+      - $ref: "#/definitions/UserBase"
+      - properties:
+          userid:
+            type: string
+          apikey:
+            type: string
+  UserCreate:
+    required:
+      - name
+    allOf:
+      - $ref: "#/definitions/UserBase"
+  UserUpdate:
+    allOf:
+      - $ref: "#/definitions/UserBase"
+      - properties:
+          apikey:
+            type: string
+  ErrorResponse:
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
