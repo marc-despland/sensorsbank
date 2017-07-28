@@ -158,6 +158,8 @@ paths:
           description: Error
           schema:
             $ref: "#/definitions/ErrorResponse"
+######################################################################################""""
+# Sensors Management API
   /sensors:
     x-swagger-router-controller: sensors
     post:
@@ -176,7 +178,7 @@ paths:
           description: The sesnors data
           required: true
           schema:
-            $ref: "#/definitions/SensorsData"
+            $ref: "#/definitions/Sensors"
       responses:
         "200":
           description: OK
@@ -185,10 +187,76 @@ paths:
           description: Error
           schema:
             $ref: "#/definitions/ErrorResponse"
+    get:
+      tags:
+        - Sensor
+      description: Return the list of sensors
+      operationId: listsensors
+      parameters:
+        - name: ApiKey
+          in: header
+          description: The user apikey
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/SensorsList"
+        # responses may fall through to errors
+        default:
+          description: Error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+  /sensors/{sensor}:
+    x-swagger-router-controller: sensors
+    get:
+      tags:
+        - Sensor
+      description: Return the data for the given sensor
+      operationId: getsensordata
+      parameters:
+        - name: ApiKey
+          in: header
+          description: The user apikey
+          required: true
+          type: string
+        - name: sensor
+          in: path
+          description: The sensor
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/SensorListData"
+        # responses may fall through to errors
+        default:
+          description: Error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+
   /swagger:
     x-swagger-pipe: swagger_raw
 # complex objects have schema definitions
 definitions:
+  SensorListData:
+    type: array
+    items:
+      $ref: "#/definitions/SensorData"
+  SensorData:
+    properties:
+      date:
+        type: string
+        format: date-time
+      value:
+        type: [string, integer, number]
+  SensorsList:
+    type: array
+    items:
+      type: string
   Sensors:
     properties:
       date:
@@ -199,6 +267,9 @@ definitions:
         items:
           $ref: "#/definitions/Sensor"
   Sensor:
+    required:
+      - name
+      - value
     properties:
       name:
         type: string
