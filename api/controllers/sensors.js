@@ -11,7 +11,8 @@ var DBPREFIX=process.env.MONGODB_DATABASE || 'sensorsbank';
 module.exports = {
 	addsensorsdata:addsensorsdata,
 	listsensors:listsensors,
-	getsensordata:getsensordata
+	getsensordata:getsensordata,
+	groupsensordata:groupsensordata
 };
 
 function addsensordata(elt, sensors, i, userdb) {
@@ -138,22 +139,41 @@ function getsensordata(req, res) {
 				res.json(message);
 			} else {
 				var userdb = db.db(DBPREFIX+"_"+user.userid);
-				var result=new Array();
-				console.log("Retreiving sesnsor data : "+req.swagger.params.sensor.value);
-				userdb.collection("sensor_"+req.swagger.params.sensor.value).find().forEach(function(data) {
-					//{_id" : ObjectId("596f6bb251dfc40342e1e4aa"), "length" : 2818380, "chunkSize" : 261120, "uploadDate" : ISODate("2017-07-19T14:24:50.522Z"),
-					//d5" : "11fdd9f6271a312f3d3450c202d6b04f", "filename" : "2017-03-15.jpg", "contentType" : "image/jpeg" }
+				var datalist=new Array();
+				var limit=100;
+				if (undefined !== req.swagger.params.limit.value) limit=req.swagger.params.limit.value;
+				
+				var offset=0;
+				if (undefined !== req.swagger.params.offset.value) offset=req.swagger.params.offset.value;
 
-					var elt={};
-					elt.date=new Date(data.year,data.month, data.day,data.hours, data.minutes, data.secondes || 0);
-					elt.value=data.value;
-					result.push(elt);
-  				}, function(error) {
-					console.log("End of forEach "+JSON.stringify(result));
-					userdb.close();
-					db.close();
-					res.statusCode=200;
-					res.json(result);
+				var order=-1;
+				if (undefined !== req.swagger.params.order.value) {
+					if (req.swagger.params.order.value === "asc") {
+						order=1;
+					} else {
+						order=-1;
+					}
+				}
+				var orderquery={'year':order,'month':order,'day':order,'hours':order,'minutes':order};
+				console.log("Retreiving sesnsor data : "+req.swagger.params.sensor.value);
+				userdb.collection("sensor_"+req.swagger.params.sensor.value).count().then(function(count) {
+					userdb.collection("sensor_"+req.swagger.params.sensor.value).find().sort(orderquery).limit(limit).skip(offset).forEach(function(data) {
+						console.log("Found one element "+JSON.stringify(data));
+						var elt={};
+						elt.date=new Date(data.year,data.month, data.day,data.hours, data.minutes, data.secondes || 0);
+						elt.value=data.value;
+						datalist.push(elt);
+	  				}, function(error) {
+						console.log("End of forEach "+JSON.stringify(datalist));
+						userdb.close();
+						db.close();
+						res.statusCode=200;
+						var result={};
+						result.count=count;
+						result.offset=offset;
+						result.data=datalist;
+						res.json(result);
+					});
 				});
 			}
 		}).catch(function(err) {
@@ -171,3 +191,68 @@ function getsensordata(req, res) {
 	});
 
 }
+
+function groupsensordata(req, res) {
+	database.connect().then(function(db) {
+		users.checkApiKey(db, req.swagger.params.ApiKey.value).then(function(user) {
+			if ((user===null) || (user === undefined)) {
+				res.statusCode=403;
+				var message={'code': 403, 'message': 'User not allowed'};
+				res.json(message);
+			} else {
+				var groupby = req.swagger.params.groupby.value;
+				var userdb = db.db(DBPREFIX+"_"+user.userid);
+				var datalist=new Array();
+
+				var match={};
+				if (undefined !== req.swagger.params.year.value) match.year=req.swagger.params.year.value;
+				if (undefined !== req.swagger.params.month.value) match.month=req.swagger.params.month.value-1;
+				if (undefined !== req.swagger.params.day.value) match.day=req.swagger.params.day.value;
+
+				var aggregate=new Array();
+				if ((match.year!== undefined) || (match.month!== undefined) || (match.day!== undefined)) {
+					var elt={};
+					elt.$match=match;
+					aggregate.push(elt);
+				}
+				var elt={};
+				elt.$group={};
+				elt.$group._id="$"+groupby;
+				elt.$group.value={ $avg: "$value"};
+				aggregate.push(elt);
+				console.log("Aggregate : "+JSON.stringify(aggregate));
+				var cursor=userdb.collection("sensor_"+req.swagger.params.sensor.value).aggregate(aggregate, {cursor: {batchSize:1}}).sort({_id:1});
+				cursor.each(function(error,data) {
+					if (data!==null) {
+						console.log("Found one element "+JSON.stringify(data));
+						var elt={};
+						elt.id=data._id;
+						if (groupby==="month") elt.id++;
+						elt.value=data.value;
+						datalist.push(elt);
+					} else {
+						console.log("ERROR : "+error);
+						console.log("End of forEach "+JSON.stringify(datalist));
+						userdb.close();
+						db.close();
+						res.statusCode=200;
+						res.json(datalist);
+					}
+				});
+			}
+		}).catch(function(err) {
+			console.log(err);
+			db.close();
+			res.statusCode=500;
+			var message={'code': 500, 'message': err};
+			res.json(message);
+		});
+	}).catch(function(err) {
+		console.log(err);
+		res.statusCode=500;
+		var message={'code': 500, 'message': 'We have a database issue'};
+		res.json(message);
+	});
+
+}
+

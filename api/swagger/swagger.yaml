@@ -1,6 +1,6 @@
 swagger: "2.0"
 info:
-  version: "0.0.1"
+  version: "1.0.0"
   title: Sensors Bank API
 # basePath prefixes all resource paths 
 basePath: /api
@@ -226,6 +226,72 @@ paths:
           description: The sensor
           required: true
           type: string
+        - name: limit
+          description: The limit of element returned (default 100) 
+          in: query
+          required: false
+          type: integer
+        - name: offset
+          description: Return the offset element first 
+          in: query
+          required: false
+          type: integer
+        - name: order
+          description: Order the query 
+          in: query
+          required: false
+          type: string
+          enum: [asc, dsc]
+
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/SensorListData"
+        # responses may fall through to errors
+        default:
+          description: Error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+  /sensors/{sensor}/groupby/{groupby}:
+    x-swagger-router-controller: sensors
+    get:
+      tags:
+        - Sensor
+      description: Compute the average data for the given sensor, group by the given element
+      operationId: groupsensordata
+      parameters:
+        - name: ApiKey
+          in: header
+          description: The user apikey
+          required: true
+          type: string
+        - name: sensor
+          in: path
+          description: The sensor
+          required: true
+          type: string
+        - name: groupby
+          in: path
+          description: The sensor
+          required: true
+          type: string
+          enum: [year, month, day, hours]
+        - name: year
+          description: Restrict the operation to the given year 
+          in: query
+          required: false
+          type: integer
+        - name: month
+          description: Restrict the operation to the given month 
+          in: query
+          required: false
+          type: integer
+        - name: day
+          description: Restrict the operation to the given day 
+          in: query
+          required: false
+          type: integer
       responses:
         "200":
           description: OK
@@ -237,15 +303,30 @@ paths:
           schema:
             $ref: "#/definitions/ErrorResponse"
 
-
   /swagger:
     x-swagger-pipe: swagger_raw
 # complex objects have schema definitions
 definitions:
-  SensorListData:
+  SensorGroupbyData:
+    properties:
+      id:
+        type: integer
+      value:
+        type: [string, integer, number]
+  SensorGroupbyList:
     type: array
     items:
-      $ref: "#/definitions/SensorData"
+      $ref: "#/definitions/SensorGroupbyData"
+  SensorListData:
+    properties:
+      count:
+        type: integer
+      offset:
+        type: integer
+      data:
+        type: array
+        items:
+          $ref: "#/definitions/SensorData"
   SensorData:
     properties:
       date:
